@@ -2,15 +2,20 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"os"
-	"path/filepath"
+	"strconv"
+
+	"github.com/ghuvrons/fota-server-go/API"
+	"github.com/ghuvrons/fota-server-go/models"
+	"github.com/joho/godotenv"
 
 	giotgo "github.com/ghuvrons/g-IoT-Go"
 )
 
 func main() {
+	godotenv.Load()
+	models.DBReadEnv()
+
 	fmt.Println("Start")
 
 	var server = giotgo.NewServer()
@@ -21,57 +26,25 @@ func main() {
 		fmt.Println(username, password)
 		return true
 	})
-	go server.Serve("0.0.0.0:2000")
 
-	http.HandleFunc("/", routeSubmitPost)
-	fmt.Println("server started at localhost:9000")
-	http.ListenAndServe(":9000", nil)
-}
+	defaultHost := "127.0.0.1"
+	defaultPort := 2000
 
-func routeSubmitPost(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "", http.StatusBadRequest)
-		return
+	if host := os.Getenv("IOT_HOST"); host != "" {
+		defaultHost = host
 	}
 
-	if err := r.ParseMultipartForm(1024); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if port := os.Getenv("IOT_PORT"); port != "" {
+		nerPort, err := strconv.Atoi(port)
+		if err == nil {
+			defaultPort = nerPort
+		}
 	}
 
-	alias := r.FormValue("alias")
+	addr := fmt.Sprintf("%s:%d", defaultHost, defaultPort)
+	fmt.Println("IOT server started at", addr)
 
-	uploadedFile, handler, err := r.FormFile("file")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer uploadedFile.Close()
+	go server.Serve(addr)
 
-	dir, err := os.Getwd()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	filename := handler.Filename
-
-	if alias != "" {
-		filename = fmt.Sprintf("%s%s", alias, filepath.Ext(handler.Filename))
-	}
-
-	fileLocation := filepath.Join(dir, "files", filename)
-	targetFile, err := os.OpenFile(fileLocation, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer targetFile.Close()
-
-	if _, err := io.Copy(targetFile, uploadedFile); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Write([]byte("done"))
+	API.Serve()
 }
