@@ -25,7 +25,8 @@ func Version_StrToUint(v string) uint {
 	if n, err := strconv.Atoi(version[1]); err != nil {
 		return 0
 	} else {
-		result |= uint(n) << 16
+		mm := uint(n)
+		result |= mm << 8
 	}
 
 	if n, err := strconv.Atoi(version[2]); err != nil {

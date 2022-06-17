@@ -23,10 +23,10 @@ func setCmdHandlers(server *giotgo.Server) {
 				return giot_packet.RESP_UNKNOWN_ERROR, nil
 			}
 
-			typeNum := binary.BigEndian.Uint16(b.Bytes())
+			modelNum := binary.BigEndian.Uint32(b.Bytes())
 
 			// get firmware
-			vf := models.VehicleModelGetLatestFirmware(client.Context(), uint32(typeNum), models.FIRMWARE_VCU)
+			vf := models.VehicleModelGetLatestFirmware(client.Context(), modelNum, models.FIRMWARE_VCU)
 
 			if vf == nil {
 				return giot_packet.RESP_UNKNOWN_ERROR, nil
@@ -55,7 +55,7 @@ func setCmdHandlers(server *giotgo.Server) {
 				downloaderBuffer[client] = readFileBuffer
 			}
 
-			typeNum := binary.BigEndian.Uint16(b.Bytes())
+			modelNum := binary.BigEndian.Uint32(b.Bytes()[:4])
 			b.Next(4)
 			offset := binary.BigEndian.Uint32(b.Bytes()[:4])
 			b.Next(4)
@@ -63,7 +63,7 @@ func setCmdHandlers(server *giotgo.Server) {
 			b.Next(4)
 
 			// get firmware
-			vf := models.VehicleModelGetLatestFirmware(client.Context(), uint32(typeNum), models.FIRMWARE_VCU)
+			vf := models.VehicleModelGetLatestFirmware(client.Context(), modelNum, models.FIRMWARE_VCU)
 			if vf == nil {
 				return giot_packet.RESP_UNKNOWN_ERROR, nil
 			}
